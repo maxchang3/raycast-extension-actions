@@ -46,7 +46,7 @@ graph TB
 graph TB
     subgraph MyRepo["Your Extension Repo"]
         Source["main"]
-        SyncBranch["upstream-{sha}"]
+        SyncBranch["upstream-sync"]
         LocalPR["Pull Request"]
     end
 
@@ -55,6 +55,14 @@ graph TB
 
         ExtensionClone["Extension Repo Clone"]
         TargetClone["Official Repo Clone<br/>(Sparse Checkout)"]
+        
+        TriggerCheck{"Triggered by<br/>Schedule?"}
+        TimeCheck{"Is upstream<br/>newer?"}
+        SkipSync(["Skip Sync"])
+    end
+
+    subgraph ForkRepo["Your Fork (Optional)"]
+        ForkBranch["ext/extension-name"]
     end
 
     subgraph OfficialRepo["raycast/extensions"]
@@ -66,11 +74,18 @@ graph TB
     Action -->|Sparse checkout| TargetClone
 
     OfficialRepo -->|Sparse checkout| TargetClone
+    ForkRepo -->|Fetch active PR branch if exists| TargetClone
 
-    TargetClone -->|Rsync changes - exclude ignores| ExtensionClone
-    ExtensionClone -->|Create branch| SyncBranch
-    ExtensionClone -->|Commit & Push| SyncBranch
+    TargetClone --> TriggerCheck
+    TriggerCheck -->|Yes| TimeCheck
+    TimeCheck -->|No| SkipSync
+    TimeCheck -->|Yes| SyncAction[Rsync changes excluding ignores]
+    TriggerCheck -->|No / Manual| SyncAction
 
-    SyncBranch -->|gh pr create| LocalPR
+    SyncAction --> ExtensionClone
+    ExtensionClone -->|Create/Reset branch| SyncBranch
+    ExtensionClone -->|Commit & Force Push| SyncBranch
+
+    SyncBranch -->|gh pr create / reuse| LocalPR
     LocalPR -->|Merge| Source
 ```
