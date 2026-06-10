@@ -1,0 +1,201 @@
+name: 'Publish Raycast Extension'
+description: Automatically publish changes to a Raycast extension from your own repo to the central `raycast/extensions` repo
+branding:
+  icon: cast
+  color: red
+inputs:
+  raycast_extensions_fork_full_name:
+    description: The full name of your fork of the `raycast/extensions` repo (for example `timrogers/extensions`)
+    required: true
+  github_access_token:
+    description: A GitHub personal access token with the `repo` and `workflow` permissions, used to push to your fork of `raycast/extensions` (see `raycast_extensions_fork_full_name`) and create pull requests to the `raycast/extensions` repo. For security reasons, you should store this as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets).
+    required: true
+  github_username:
+    description: The username of the GitHub user that the `github_access_token` belongs to
+    required: true
+  extension_name:
+    description: The name of your extension. This should be lower case, with dashes separating words (e.g. `iata-code-decoder`). If you've already published your extension at least once to the `raycast/extensions` repo, this should be the name of the folder under `extensions/` where your extension lives.
+    required: true
+  raycast_extensions_target_repo:
+    description: The target repository to pull request against. Useful for testing.
+    required: false
+    default: raycast/extensions
+  ignore_paths:
+    description: A list of files or folders you DO NOT want to publish to the Raycast repository (e.g. `.vscode` and `.husky` on separate lines)
+    required: false
+    default: ".github"
+outputs:
+  pull_request_url:
+    description: The URL of the pull request to `raycast/extensions`
+    value: ${{ steps.create_pull_request.outputs.url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Get information about the current GitHub release
+      id: get_github_release
+      uses: cardinalby/git-get-release-action@v1
+      env:
+        # We can use the GitHub Actions-provided token for this step, since it will
+        # have access to the repo this action is running in.
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        # If there is no release pointing to the SHA, then this step will fail and
+        # we will not continue. This makes sense as there is nothing to release.
+        commitSha: ${{ env.GITHUB_SHA }}
+
+    - name: Check out the current repo
+      uses: actions/checkout@v6
+      with:
+        path: my-extension
+        fetch-depth: 0
+
+    - name: Check out the target extensions repo
+      uses: actions/checkout@v6
+      with:
+        repository: ${{ inputs.raycast_extensions_target_repo }}
+        # The GitHub Actions-provided token only has access to the repo where the
+        # action is running, and not other repos the user has access to. We use
+        # our personal access token which has wider access.
+        token: ${{ inputs.github_access_token }}
+        path: raycast-extensions
+        filter: blob:none
+        sparse-checkout: |
+          extensions/${{ inputs.extension_name }}
+
+    - name: Prepare target extensions repo
+      id: prepare_target
+      run: |
+        echo "::group::Set up Git remote and branch"
+        git remote add fork https://${{ inputs.github_username }}:${{ inputs.github_access_token }}@github.com/${{ inputs.raycast_extensions_fork_full_name }}.git
+        git checkout -b ext/${{ inputs.extension_name }}
+        echo "::endgroup::"
+        
+        if [ -d "extensions/${{ inputs.extension_name }}" ]; then
+          echo "is_new=false" >> $GITHUB_OUTPUT
+        else
+          echo "is_new=true" >> $GITHUB_OUTPUT
+        fi
+        
+        mkdir -p extensions/${{ inputs.extension_name }}
+      shell: bash
+      working-directory: raycast-extensions
+
+    - name: Prepare source files and copy to target
+      env:
+        IGNORE_PATHS: ${{ inputs.ignore_paths }}
+      run: |
+        if [ -n "$IGNORE_PATHS" ]; then
+          echo "::group::Remove ignored paths"
+          for path in $IGNORE_PATHS; do
+            if [ -n "$path" ]; then
+              rm -rf "$path"
+              echo "Removed $path"
+            fi
+          done
+          echo "::endgroup::"
+        fi
+        
+        echo "::group::Extract CHANGELOG diff"
+        if [ -f "CHANGELOG.md" ]; then
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+          
+          if [ -n "$PREV_TAG" ]; then
+            git diff -U0 $PREV_TAG HEAD -- CHANGELOG.md > $GITHUB_WORKSPACE/changelog.patch || true
+          elif git rev-parse HEAD~1 >/dev/null 2>&1; then
+            git diff -U0 HEAD~1 HEAD -- CHANGELOG.md > $GITHUB_WORKSPACE/changelog.patch || true
+          fi
+          
+          if [ -f "$GITHUB_WORKSPACE/changelog.patch" ]; then
+            perl -pi -e 's/[0-9]{4}-[0-9]{2}-[0-9]{2}/\{PR_MERGE_DATE\}/g' $GITHUB_WORKSPACE/changelog.patch
+          fi
+        fi
+        echo "::endgroup::"
+        
+        echo "::group::Copy extension files"
+        rsync -a --filter=':- .gitignore' --exclude='.git' . ../raycast-extensions/extensions/${{ inputs.extension_name }}
+        echo "::endgroup::"
+      shell: bash
+      working-directory: my-extension
+
+    - name: Apply CHANGELOG modifications safely
+      run: |
+        # Check if CHANGELOG.md exists in the upstream repo's HEAD
+        if git cat-file -e HEAD:extensions/${{ inputs.extension_name }}/CHANGELOG.md 2>/dev/null; then
+          # Extension exists upstream, let's restore the upstream CHANGELOG.md to preserve historical dates
+          git checkout HEAD -- CHANGELOG.md
+          # Apply the patch with the new release
+          if [ -f "$GITHUB_WORKSPACE/changelog.patch" ] && [ -s "$GITHUB_WORKSPACE/changelog.patch" ]; then
+            patch --force -p1 < $GITHUB_WORKSPACE/changelog.patch || true
+          fi
+        else
+          # First publish to Raycast. Keep the copied CHANGELOG.md and just replace the first date.
+          if [ -f "CHANGELOG.md" ]; then
+            perl -pi -e 's/[0-9]{4}-[0-9]{2}-[0-9]{2}/\{PR_MERGE_DATE\}/g if /^## / && !$done++' CHANGELOG.md
+          fi
+        fi
+      shell: bash
+      working-directory: raycast-extensions/extensions/${{ inputs.extension_name }}
+
+    - name: Commit and push changes
+      env:
+        RELEASE_BODY: ${{ steps.get_github_release.outputs.body }}
+      run: |
+        echo "::group::Stage changes"
+        git add --all .
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        echo "::endgroup::"
+        
+        if [ "${{ steps.prepare_target.outputs.is_new }}" == "true" ]; then
+          PR_TITLE="Add ${{ inputs.extension_name }} extension"
+        else
+          PR_TITLE="Update ${{ inputs.extension_name }} extension"
+        fi
+        
+        echo "::group::Generate PR template"
+        echo "## Description" > $GITHUB_WORKSPACE/pr_template.md
+        echo "" >> $GITHUB_WORKSPACE/pr_template.md
+        printf "%s\n" "$RELEASE_BODY" | sed '1d' >> $GITHUB_WORKSPACE/pr_template.md
+        echo "" >> $GITHUB_WORKSPACE/pr_template.md
+        
+        cat << 'EOF' >> $GITHUB_WORKSPACE/pr_template.md
+        ## Screencast
+        
+        <!-- Automated PR: Screencast skipped. Please refer to README if needed. -->
+        
+        ## Checklist
+        
+        - [x] I read the [extension guidelines](https://developers.raycast.com/basics/prepare-an-extension-for-store)
+        - [x] I read the [documentation about publishing](https://developers.raycast.com/basics/publish-an-extension)
+        - [x] I ran `npm run build` and [tested this distribution build in Raycast](https://developers.raycast.com/basics/prepare-an-extension-for-store#metadata-and-configuration)
+        - [x] I checked that files in the `assets` folder are used by the extension itself
+        - [x] I checked that assets used in the `README` are located outside the metadata folder if they were not generated with our [metadata tool](https://developers.raycast.com/basics/prepare-an-extension-for-store#how-to-use-it)
+        EOF
+        echo "::endgroup::"
+        
+        echo "::group::Commit and push"
+        git commit -m "$PR_TITLE"
+        git push -f fork ext/${{ inputs.extension_name }}
+        echo "::endgroup::"
+      shell: bash
+      working-directory: raycast-extensions
+
+    - name: Create pull request (if it doesn't already exist)
+      id: create_pull_request
+      run: |
+        PR_URL=$(gh pr list --state open --head "ext/${{ inputs.extension_name }}" --author "${{ inputs.github_username }}" --repo ${{ inputs.raycast_extensions_target_repo }} --json url --jq '.[0].url')
+        
+        if [ -z "$PR_URL" ]; then
+          PR_TITLE=$(git log -1 --pretty=%s)
+          PR_URL=$(gh pr create --repo ${{ inputs.raycast_extensions_target_repo }} --head ${{ inputs.github_username }}:ext/${{ inputs.extension_name }} --title "$PR_TITLE" --body-file $GITHUB_WORKSPACE/pr_template.md)
+          echo "Created new PR: $PR_URL"
+        else
+          echo "Found existing PR: $PR_URL"
+        fi
+        
+        echo "url=$PR_URL" >> $GITHUB_OUTPUT
+      shell: bash
+      working-directory: raycast-extensions
+      env:
+        GH_TOKEN: ${{ inputs.github_access_token }}

@@ -1,0 +1,32 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          release-type: simple
+
+      - uses: actions/checkout@v6
+        if: ${{ steps.release.outputs.release_created }}
+
+      - name: Update major tag
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+          MAJOR_VERSION="v${{ steps.release.outputs.major }}"
+          git tag -fa "$MAJOR_VERSION" -m "Update $MAJOR_VERSION tag"
+          git push origin "$MAJOR_VERSION" --force
