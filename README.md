@@ -88,6 +88,5 @@ jobs:
           # Optional: List of files/folders you DO NOT want to sync back
           ignore_paths: |
             CHANGELOG.md
-            .github/
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 ```
