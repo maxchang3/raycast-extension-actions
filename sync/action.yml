@@ -72,17 +72,7 @@ runs:
       shell: bash
       working-directory: raycast-extensions
 
-    - name: Get SHA of most recent upstream extension changes
-      id: get_most_recent_upstream_changes_sha
-      run: |
-        # Get SHA of most recent upstream extension changes
-        if [ -d "extensions/${{ inputs.extension_name }}" ]; then
-          echo "SHA=$(git --no-pager log -1 --format="%H" extensions/${{ inputs.extension_name }})" >> $GITHUB_OUTPUT
-        else
-          echo "SHA=" >> $GITHUB_OUTPUT
-        fi
-      shell: bash
-      working-directory: raycast-extensions
+
 
     - name: Check timestamps for scheduled runs
       id: check_timestamps
@@ -146,7 +136,9 @@ runs:
       working-directory: my-extension
 
     - name: Create branch for any upstream changes
-      run: git checkout -b upstream-${{ steps.get_most_recent_upstream_changes_sha.outputs.SHA }}
+      run: |
+        git branch -D upstream-sync 2>/dev/null || true
+        git checkout -b upstream-sync
       shell: bash
       working-directory: my-extension
       if: steps.check_changes.outputs.changed == '1'
@@ -170,7 +162,7 @@ runs:
       if: steps.check_changes.outputs.changed == '1'
 
     - name: Push upstream changes to our repo
-      run: git push -f origin upstream-${{ steps.get_most_recent_upstream_changes_sha.outputs.SHA }}
+      run: git push -f origin upstream-sync
       shell: bash
       working-directory: my-extension
       if: steps.check_changes.outputs.changed == '1'
@@ -179,8 +171,13 @@ runs:
       id: create_pull_request
       # If there is already a PR for this branch, then we'll skip creating a new PR and return the URL of the existing one
       run: |
-        pr_url="$(gh pr create --head upstream-${{ steps.get_most_recent_upstream_changes_sha.outputs.SHA }} --title "Sync upstream changes from ${{ inputs.raycast_extensions_source_repo }}" --body "This PR should be merged without modifications so that this repo reflects what is upstream in the raycast/extensions repo.")"
-        echo "url=$pr_url" >> $GITHUB_OUTPUT
+        PR_EXISTS=$(gh pr list --head upstream-sync --state open --json url --jq '.[0].url')
+        if [ -n "$PR_EXISTS" ]; then
+          echo "url=$PR_EXISTS" >> $GITHUB_OUTPUT
+        else
+          pr_url="$(gh pr create --head upstream-sync --title "Sync upstream changes from ${{ inputs.raycast_extensions_source_repo }}" --body "This PR should be merged without modifications so that this repo reflects what is upstream in the raycast/extensions repo.")"
+          echo "url=$pr_url" >> $GITHUB_OUTPUT
+        fi
       shell: bash
       working-directory: my-extension
       env:
