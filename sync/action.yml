@@ -1,4 +1,4 @@
-name: 'Pull Raycast Extension Changes'
+name: "Sync Raycast Extension Changes"
 description: Store a Raycast extension in your own repo, and automatically create a PR with changes made in `raycast/extensions`
 branding:
   icon: cast
@@ -26,7 +26,7 @@ runs:
   using: composite
   steps:
     - name: Check out the current repo
-      uses:  actions/checkout@v6
+      uses: actions/checkout@v6
       with:
         path: my-extension
         fetch-depth: 0
@@ -39,7 +39,7 @@ runs:
       working-directory: my-extension
 
     - name: Check out the target extensions repo
-      uses:  actions/checkout@v6
+      uses: actions/checkout@v6
       with:
         repository: ${{ inputs.raycast_extensions_source_repo }}
         path: raycast-extensions
