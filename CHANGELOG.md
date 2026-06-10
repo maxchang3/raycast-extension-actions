@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/maxchang3/raycast-extension-actions/compare/v1.1.0...v1.1.1) (2026-06-10)
+
+
+### Bug Fixes
+
+* **sync:** rename raycast_extensions_fork_repo to raycast_extensions_fork_full_name in action configuration ([e51b63e](https://github.com/maxchang3/raycast-extension-actions/commit/e51b63e1b68f059be9379f237eb319115dc75fea))
+
 ## [1.1.0](https://github.com/maxchang3/raycast-extension-actions/compare/v1.0.2...v1.1.0) (2026-06-10)
 
 
