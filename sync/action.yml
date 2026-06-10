@@ -164,7 +164,7 @@ runs:
       if: steps.check_changes.outputs.changed == '1'
 
     - name: Commit upstream changes to branch
-      run: git commit -m 'Sync upstream changes from ${{ steps.get_most_recent_upstream_changes_sha.outputs.SHA }} and earlier'
+      run: git commit -m 'Sync upstream changes from ${{ inputs.raycast_extensions_source_repo }}'
       shell: bash
       working-directory: my-extension
       if: steps.check_changes.outputs.changed == '1'
@@ -179,7 +179,7 @@ runs:
       id: create_pull_request
       # If there is already a PR for this branch, then we'll skip creating a new PR and return the URL of the existing one
       run: |
-        pr_url="$(gh pr create --head upstream-${{ steps.get_most_recent_upstream_changes_sha.outputs.SHA }} --title "Sync upstream changes from ${{ steps.get_most_recent_upstream_changes_sha.outputs.SHA }} and earlier" --body "This PR should be merged without modifications so that this repo reflects what is upstream in the raycast/extensions repo.")"
+        pr_url="$(gh pr create --head upstream-${{ steps.get_most_recent_upstream_changes_sha.outputs.SHA }} --title "Sync upstream changes from ${{ inputs.raycast_extensions_source_repo }}" --body "This PR should be merged without modifications so that this repo reflects what is upstream in the raycast/extensions repo.")"
         echo "url=$pr_url" >> $GITHUB_OUTPUT
       shell: bash
       working-directory: my-extension
