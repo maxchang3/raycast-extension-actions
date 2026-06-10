@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/maxchang3/raycast-extension-actions/compare/v1.1.1...v1.1.2) (2026-06-10)
+
+
+### Bug Fixes
+
+* use correct fork input variable for fork logic check ([6f6bd44](https://github.com/maxchang3/raycast-extension-actions/commit/6f6bd4468ab1bdd7de764fa523ec345c21c260a4))
+
 ## [1.1.1](https://github.com/maxchang3/raycast-extension-actions/compare/v1.1.0...v1.1.1) (2026-06-10)
 
 
