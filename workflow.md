@@ -40,7 +40,7 @@ graph TB
     PR -->|Merge| Main
 ```
 
-## 2. Sync Raycast Extension Changes
+## 2. Sync `raycast/extension` Changes
 
 ```mermaid
 graph TB

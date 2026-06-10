@@ -55,7 +55,7 @@ jobs:
 
 ---
 
-## 2. Pull Raycast Extension Changes
+## 2. Sync `raycast/extension` Changes
 
 This action automatically creates a PR to your repo whenever any changes are made to your extension "upstream" in the `raycast/extensions` repo.
 

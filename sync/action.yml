@@ -1,4 +1,4 @@
-name: "Sync Raycast Extension Changes"
+name: "Sync raycast/extension Changes"
 description: Store a Raycast extension in your own repo, and automatically create a PR with changes made in `raycast/extensions`
 branding:
   icon: cast
