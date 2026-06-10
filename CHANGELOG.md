@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/maxchang3/raycast-extension-actions/compare/v1.0.2...v1.1.0) (2026-06-10)
+
+
+### Features
+
+* add support for syncing from a fork when an active PR is detected ([1c1ddd3](https://github.com/maxchang3/raycast-extension-actions/commit/1c1ddd36a77a93bbf6ee8061728f6eb49c4e9c17))
+
+
+### Bug Fixes
+
+* add existence check for extension directory to prevent errors when upstream path is missing ([5dc686f](https://github.com/maxchang3/raycast-extension-actions/commit/5dc686fc62db555793bea3340d1b3cf461315812))
+
 ## [1.0.2](https://github.com/maxchang3/raycast-extension-actions/compare/v1.0.1...v1.0.2) (2026-06-10)
 
 
