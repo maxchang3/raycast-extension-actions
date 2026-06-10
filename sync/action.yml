@@ -44,7 +44,11 @@ runs:
     - name: Get SHA of most recent upstream extension changes
       id: get_most_recent_upstream_changes_sha
       run: |
-        echo "SHA=$(git --no-pager log -1 --format="%H" extensions/${{ inputs.extension_name }})" >> $GITHUB_OUTPUT
+        if [ -d "extensions/${{ inputs.extension_name }}" ]; then
+          echo "SHA=$(git --no-pager log -1 --format="%H" extensions/${{ inputs.extension_name }})" >> $GITHUB_OUTPUT
+        else
+          echo "SHA=" >> $GITHUB_OUTPUT
+        fi
       shell: bash
       working-directory: raycast-extensions
 
@@ -52,6 +56,10 @@ runs:
       env:
         IGNORE_PATHS: ${{ inputs.ignore_paths }}
       run: |
+        if [ ! -d "extensions/${{ inputs.extension_name }}" ]; then
+          echo "Extension not found in upstream. Skipping..."
+          exit 0
+        fi
         IGNORE_ARGS=""
         if [ -n "$IGNORE_PATHS" ]; then
           for path in $IGNORE_PATHS; do
