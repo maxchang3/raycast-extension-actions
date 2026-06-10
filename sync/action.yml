@@ -65,6 +65,8 @@ runs:
           else
             echo "No active PR found from fork. Using upstream main."
           fi
+        else
+          echo "No fork repo provided. Using upstream main."
         fi
       shell: bash
       working-directory: raycast-extensions
