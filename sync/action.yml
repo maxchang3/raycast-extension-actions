@@ -84,7 +84,32 @@ runs:
       shell: bash
       working-directory: raycast-extensions
 
+    - name: Check timestamps for scheduled runs
+      id: check_timestamps
+      run: |
+        # Check timestamps for scheduled runs
+        if [ "${{ github.event_name }}" == "schedule" ]; then
+          LOCAL_TIME=$(git -C ../my-extension --no-pager log -1 --pretty="format:%cd" --date=format:"%Y-%m-%d %H:%M:%S" 2>/dev/null || echo "")
+          if [ -d "extensions/${{ inputs.extension_name }}" ]; then
+            UPSTREAM_TIME=$(git --no-pager log -1 --pretty="format:%cd" --date=format:"%Y-%m-%d %H:%M:%S" extensions/${{ inputs.extension_name }} 2>/dev/null || echo "")
+          else
+            UPSTREAM_TIME=""
+          fi
+          
+          if [[ -n "$LOCAL_TIME" && -n "$UPSTREAM_TIME" ]]; then
+            if [[ "$LOCAL_TIME" > "$UPSTREAM_TIME" ]] || [[ "$LOCAL_TIME" == "$UPSTREAM_TIME" ]]; then
+              echo "No changes to pull - local repository was updated at $LOCAL_TIME and upstream repository was updated at $UPSTREAM_TIME"
+              echo "skip=1" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+        fi
+        echo "skip=0" >> $GITHUB_OUTPUT
+      shell: bash
+      working-directory: raycast-extensions
+
     - name: Copy upstream changes
+      if: steps.check_timestamps.outputs.skip != '1'
       env:
         IGNORE_PATHS: ${{ inputs.ignore_paths }}
       run: |
@@ -106,6 +131,7 @@ runs:
       working-directory: raycast-extensions
 
     - name: Check for changes
+      if: steps.check_timestamps.outputs.skip != '1'
       id: check_changes
       run: |
         # Check for changes
