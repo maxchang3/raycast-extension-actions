@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/maxchang3/raycast-extension-actions/compare/v1.2.0...v1.3.0) (2026-06-10)
+
+
+### Features
+
+* simplify sync branch management by using a static upstream-sync branch and re-using existing pull requests ([928e8c3](https://github.com/maxchang3/raycast-extension-actions/commit/928e8c36b9d290736e36a3c68edf4078b58a4e03))
+
 ## [1.2.0](https://github.com/maxchang3/raycast-extension-actions/compare/v1.1.2...v1.2.0) (2026-06-10)
 
 
