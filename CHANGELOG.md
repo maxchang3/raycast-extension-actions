@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0](https://github.com/maxchang3/raycast-extension-actions/compare/v1.1.2...v1.2.0) (2026-06-10)
+
+
+### Features
+
+* add timestamp check to skip upstream syncs when no new changes exist ([d02d7a7](https://github.com/maxchang3/raycast-extension-actions/commit/d02d7a725b43119b337e518bb7999e9ae41354ac))
+* update git commit and PR title ([1beb4e1](https://github.com/maxchang3/raycast-extension-actions/commit/1beb4e1b80f2de512a8f0f136e65b2c8f87e5de6))
+
 ## [1.1.2](https://github.com/maxchang3/raycast-extension-actions/compare/v1.1.1...v1.1.2) (2026-06-10)
 
 
