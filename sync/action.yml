@@ -14,6 +14,10 @@ inputs:
     description: The source repository to pull changes from. Useful for testing.
     required: false
     default: raycast/extensions
+  raycast_extensions_fork_repo:
+    description: The full name of your fork of the `raycast/extensions` repo (for example `timrogers/extensions`). If provided, the action will check for an active PR and sync from your fork's `ext/{extension_name}` branch if a PR is open.
+    required: false
+    default: ""
   ignore_paths:
     description: A list of files or directories to ignore when pulling changes (e.g. `CHANGELOG.md`).
     required: false
@@ -40,6 +44,30 @@ runs:
         filter: blob:none
         sparse-checkout: |
           extensions/${{ inputs.extension_name }}
+
+    - name: Fetch from fork if active PR exists
+      id: fetch_fork
+      env:
+        GH_TOKEN: ${{ inputs.github_access_token }}
+      run: |
+        if [ -n "${{ inputs.raycast_extensions_fork_repo }}" ]; then
+          FORK_OWNER=$(echo "${{ inputs.raycast_extensions_fork_repo }}" | cut -d'/' -f1)
+          
+          # Check if there is an open PR from the fork's ext/ branch
+          PR_COUNT=$(gh pr list --repo ${{ inputs.raycast_extensions_source_repo }} --author "$FORK_OWNER" --state open --search "head:ext/${{ inputs.extension_name }}" --json number --jq 'length' 2>/dev/null || echo 0)
+          
+          if [ "$PR_COUNT" -gt 0 ]; then
+            echo "Found active PR from $FORK_OWNER:ext/${{ inputs.extension_name }}. Fetching from fork..."
+            git remote add fork https://github.com/${{ inputs.raycast_extensions_fork_repo }}.git
+            git fetch fork ext/${{ inputs.extension_name }}
+            # Check out the fork branch
+            git checkout -b fork-branch FETCH_HEAD
+          else
+            echo "No active PR found from fork. Using upstream main."
+          fi
+        fi
+      shell: bash
+      working-directory: raycast-extensions
 
     - name: Get SHA of most recent upstream extension changes
       id: get_most_recent_upstream_changes_sha
