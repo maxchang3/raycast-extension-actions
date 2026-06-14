@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/maxchang3/raycast-extension-actions/compare/v1.3.0...v1.4.0) (2026-06-14)
+
+
+### Features
+
+* add sync-to-fork action to synchronize local extension changes to a fork branch ([011bc16](https://github.com/maxchang3/raycast-extension-actions/commit/011bc16ef82a0a6ecd16dc09c3079cfc0860887f))
+
 ## [1.3.0](https://github.com/maxchang3/raycast-extension-actions/compare/v1.2.0...v1.3.0) (2026-06-10)
 
 
