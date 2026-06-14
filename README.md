@@ -2,12 +2,13 @@
 
 > This repository is a unified fork and improvement of [timrogers/publish-raycast-extension](https://github.com/timrogers/publish-raycast-extension) and [timrogers/pull-raycast-extension-changes](https://github.com/timrogers/pull-raycast-extension-changes).
 
-This repository contains two GitHub Actions to help you manage your Raycast extensions smoothly between your local repository and the official `raycast/extensions` repository.
+This repository contains three GitHub Actions to help you manage your Raycast extensions smoothly between your local repository and the official `raycast/extensions` repository.
 
 1. **[Publish Raycast Extension](#1-publish-raycast-extension)**: Publish changes from your local repository to the official repository.
 2. **[Pull Raycast Extension Changes](#2-pull-raycast-extension-changes)**: Sync upstream changes from the official repository back to your local repository.
+3. **[Sync to Fork (Manual PR Updates)](#3-sync-to-fork-manual-pr-updates)**: Sync your current local branch changes to your `raycast/extensions` fork branch.
 
-With these two actions, your extension can live in your own repo, but be automatically synced in both directions with `raycast/extensions`.
+With these actions, your extension can live in your own repo, but be automatically synced in both directions with `raycast/extensions`.
 
 ---
 
