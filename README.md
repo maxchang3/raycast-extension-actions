@@ -28,6 +28,9 @@ This action allows you to store a custom extension in your own repo, and automat
 2. Add a Personal Access Token (`repo` and `workflow` scopes) as a secret named `GH_ACCESS_TOKEN`.
 3. Create `.github/workflows/release.yml`:
 
+> [!TIP]
+> It is highly recommended to configure a GitHub Environment (e.g., `raycast-publish`) with **Required reviewers** in your repository settings. By specifying this environment in your job, the workflow will automatically pause and require your manual approval before actually creating the PR to Raycast.
+
 ```yaml
 name: Publish to Raycast
 on:
@@ -40,6 +43,8 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # Recommended: require manual approval before publishing
+    environment: raycast-publish
     steps:
       - uses: maxchang3/raycast-extension-actions/publish@v1
         with:
