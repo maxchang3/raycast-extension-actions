@@ -1,5 +1,5 @@
 name: "Sync to Fork"
-description: Sync local changes to the fork's extension branch without creating a release or PR upstream.
+description: Sync changes to the fork's extension branch without creating a release or PR upstream.
 branding:
   icon: git-commit
   color: green
@@ -25,7 +25,7 @@ inputs:
   commit_message:
     description: The commit message for the sync.
     required: false
-    default: "Sync local changes to fork"
+    default: "Sync changes to fork"
   create_pr:
     description: Whether to create a PR against `ext/<extension_name>` inside the fork instead of pushing directly.
     required: false
@@ -119,7 +119,7 @@ runs:
         if [ -n "$EXISTING_PR" ]; then
           echo "PR already exists: $EXISTING_PR. It has been automatically updated via force-push."
         else
-          PR_URL=$(gh pr create --repo ${{ inputs.raycast_extensions_fork_full_name }} --base ext/${{ inputs.extension_name }} --head ${{ steps.branch_setup.outputs.branch_name }} --title "$PR_TITLE" --body "Automated PR to sync local changes to the fork branch.")
+          PR_URL=$(gh pr create --repo ${{ inputs.raycast_extensions_fork_full_name }} --base ext/${{ inputs.extension_name }} --head ${{ steps.branch_setup.outputs.branch_name }} --title "$PR_TITLE" --body "Automated PR to sync changes.")
           echo "Created new PR: $PR_URL"
         fi
       shell: bash
