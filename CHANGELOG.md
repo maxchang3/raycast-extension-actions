@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/maxchang3/raycast-extension-actions/compare/v1.4.0...v1.5.0) (2026-06-14)
+
+
+### Features
+
+* update sync branch naming and implement idempotent PR creation with force-push support ([6c9ac1a](https://github.com/maxchang3/raycast-extension-actions/commit/6c9ac1a5435ce41007ff16cc58aec6740f4f9cd2))
+
 ## [1.4.0](https://github.com/maxchang3/raycast-extension-actions/compare/v1.3.0...v1.4.0) (2026-06-14)
 
 
