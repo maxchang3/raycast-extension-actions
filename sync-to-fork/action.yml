@@ -1,0 +1,122 @@
+name: 'Sync to Fork'
+description: Sync local changes to the fork's extension branch without creating a release or PR upstream.
+branding:
+  icon: git-commit
+  color: green
+inputs:
+  raycast_extensions_fork_full_name:
+    description: The full name of your fork of the `raycast/extensions` repo (for example `timrogers/extensions`)
+    required: true
+  github_access_token:
+    description: A GitHub personal access token with the `repo` and `workflow` permissions.
+    required: true
+  github_username:
+    description: The username of the GitHub user.
+    required: true
+  extension_name:
+    description: The name of your extension.
+    required: true
+  ignore_paths:
+    description: A list of files or folders you DO NOT want to sync.
+    required: false
+    default: |
+      CHANGELOG.md
+      .github
+  commit_message:
+    description: The commit message for the sync.
+    required: false
+    default: "Sync local changes to fork"
+  create_pr:
+    description: Whether to create a PR against `ext/<extension_name>` inside the fork instead of pushing directly.
+    required: false
+    type: boolean
+    default: false
+
+runs:
+  using: composite
+  steps:
+    - name: Check out the current repo
+      uses: actions/checkout@v6
+      with:
+        path: my-extension
+        fetch-depth: 0
+
+    - name: Check out the target extensions repo fork branch
+      uses: actions/checkout@v6
+      with:
+        repository: ${{ inputs.raycast_extensions_fork_full_name }}
+        token: ${{ inputs.github_access_token }}
+        path: raycast-extensions
+        ref: ext/${{ inputs.extension_name }}
+        filter: blob:none
+        sparse-checkout: |
+          extensions/${{ inputs.extension_name }}
+
+    - name: Prepare branch
+      id: branch_setup
+      run: |
+        if [ "${{ inputs.create_pr }}" == "true" ]; then
+          TIMESTAMP=$(date +%s)
+          BRANCH_NAME="sync-${TIMESTAMP}"
+          git checkout -b "$BRANCH_NAME"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+        else
+          echo "branch_name=ext/${{ inputs.extension_name }}" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
+      working-directory: raycast-extensions
+
+    - name: Sync files
+      env:
+        IGNORE_PATHS: ${{ inputs.ignore_paths }}
+      run: |
+        IGNORE_ARGS=""
+        if [ -n "$IGNORE_PATHS" ]; then
+          while IFS= read -r path; do
+            if [ -n "$path" ]; then
+              IGNORE_ARGS="$IGNORE_ARGS --exclude=$path"
+            fi
+          done <<< "$IGNORE_PATHS"
+        fi
+        
+        echo "::group::Copy extension files"
+        rsync -av --delete --filter=':- .gitignore' --exclude='.git' $IGNORE_ARGS ./ ../raycast-extensions/extensions/${{ inputs.extension_name }}/
+        echo "::endgroup::"
+      shell: bash
+      working-directory: my-extension
+
+    - name: Commit and push changes
+      id: commit_push
+      run: |
+        echo "::group::Stage changes"
+        git add --all .
+        
+        if git diff --staged --quiet; then
+          echo "No changes to sync."
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+          exit 0
+        else
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+        fi
+
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        echo "::endgroup::"
+        
+        echo "::group::Commit and push"
+        git commit -m "${{ inputs.commit_message }}"
+        git push origin ${{ steps.branch_setup.outputs.branch_name }}
+        echo "::endgroup::"
+      shell: bash
+      working-directory: raycast-extensions
+
+    - name: Create pull request (if requested)
+      if: inputs.create_pr == 'true' && steps.commit_push.outputs.has_changes == 'true'
+      run: |
+        PR_TITLE="${{ inputs.commit_message }}"
+        PR_URL=$(gh pr create --repo ${{ inputs.raycast_extensions_fork_full_name }} --base ext/${{ inputs.extension_name }} --head ${{ steps.branch_setup.outputs.branch_name }} --title "$PR_TITLE" --body "Automated PR to sync local changes to the fork branch.")
+        echo "Created new PR: $PR_URL"
+      shell: bash
+      working-directory: raycast-extensions
+      env:
+        GH_TOKEN: ${{ inputs.github_access_token }}

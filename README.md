@@ -90,3 +90,49 @@ jobs:
             CHANGELOG.md
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+---
+
+## 3. Sync to Fork (Manual PR Updates)
+
+This action allows you to sync your current local branch changes to your `raycast/extensions` fork branch (e.g., `ext/your-extension-name`) without publishing a new release or creating a PR to the upstream `raycast/extensions` repository. 
+
+It is designed for the scenario where you already have an open PR and need to push updates based on PR reviews.
+
+### Features & Improvements
+
+- **Safe Syncing**: Copies your local changes to the fork's PR branch while ignoring specific files (like `CHANGELOG.md`), so your manual changelog edits during the PR are preserved.
+- **Review Workflow**: Supports a `create_pr` option to create a Pull Request within your *own* fork (against the `ext/your-extension-name` branch) so you can review the synced changes before merging them.
+
+### Usage
+
+It is highly recommended to trigger this action manually via `workflow_dispatch`.
+
+1. Create a `.github/workflows/sync-to-fork.yml` file:
+
+```yaml
+name: Sync to Fork
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: maxchang3/raycast-extension-actions/sync-to-fork@v1
+        with:
+          raycast_extensions_fork_full_name: your-username/extensions
+          github_username: your-username
+          extension_name: your-extension-name
+          github_access_token: ${{ secrets.GH_ACCESS_TOKEN }}
+          # Optional: ignore files you don't want to sync (default shown)
+          # ignore_paths: |
+          #   CHANGELOG.md
+          #   .github
+          # Optional: Create a PR in your fork instead of pushing directly to ext/
+          # create_pr: false
+```
+
